@@ -72,7 +72,17 @@ sgdisk --print ${DISK_DEVICE}
 
 # setup a dm-crypt LUKS2 container on the main data partition
 echo "Setting up encryption on the main data partition..."
-cryptsetup --type luks2 --cipher aes-xts-plain64 --hash sha256 --iter-time 2000 --key-size 256 --pbkdf argon2i --sector-size 512 --use-random --verify-passphrase luksFormat ${MAIN_PARTITION}
+cryptsetup \
+	--type luks2 \
+	--cipher aes-xts-plain64 \
+	--hash sha256 \
+	--iter-time 2000 \
+	--key-size 256 \
+	--pbkdf argon2i \
+	--sector-size 512 \
+	--use-random \
+	--verify-passphrase \
+	luksFormat ${MAIN_PARTITION}
 if ($? -ne 0); then
   echo "ERROR: Could not setup encryption on the partition ${MAIN_PARTITION}!" >&2
   exit 1
@@ -84,7 +94,10 @@ cryptsetup luksDump ${MAIN_PARTITION}
 
 # make the encrypted partition available for writing
 echo "Making the encrypted partition available to the system..."
-cryptsetup --allow-discards --persistent open ${MAIN_PARTITION} ${ENCRYPTED_NAME}
+cryptsetup \
+	--allow-discards \
+	--persistent \
+	open ${MAIN_PARTITION} ${ENCRYPTED_NAME}
 if ($? -ne 0); then
   echo "ERROR: Could not open the encrypted partition ${MAIN_PARTITION}!" >&2
   exit 1
@@ -103,7 +116,7 @@ echo "DONE: Created BTRFS file system on ${ENCRYPTED_PARTITION}"
 
 # mount the root file system
 ROOT_MOUNT_POINT=/mnt
-BTRFS_OPTS=noatime,nodirtime,ssd,discard,compress=lzo
+BTRFS_OPTS=noatime,nodiratime,ssd,discard,compress=lzo
 echo "Mounting the root file system..."
 mount -t btrfs -o ${BTRFS_OPTS} ${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT}
 if ($? -ne 0); then
@@ -114,7 +127,9 @@ echo "DONE: The encrypted root file sytem has been mounted on ${ROOT_MOUNT_POINT
 lsblk ${DISK_DEVICE}
 
 # create primary subvolumes on the root file sytem
-btrfs subvolume create ${ROOT_MOUNT_POINT}/@ && btrfs subvolume create ${ROOT_MOUNT_POINT}/@home && btrfs subvolume create ${ROOT_MOUNT_POINT}/@snapshots
+   btrfs subvolume create ${ROOT_MOUNT_POINT}/@ \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/@home \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/@snapshots
 if ($? -ne 0); then
   echo "ERROR: Could not create some of the subvolumes on the root file system!" >&2
   exit 1
@@ -124,7 +139,21 @@ echo "DONE: Created ${ROOT_MOUNT_POINT}/@, ${ROOT_MOUNT_POINT}/@home and ${ROOT_
 # unmount the root file system and remount with the subvolumes
 echo "Re-mounting the root file system and creating folders for primary subvolumes..."
 BTRFS_OPTS=${BTRFS_OPTS},x-mount.mkdir
-umount ${ROOT_MOUNT_POINT} && mount -t btrfs -o ${BTRFS_OPTS},subvol=@ ${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT} && mount -o ${BTRFS_OPTS} ${EFI_PARTITION} ${ROOT_MOUNT_POINT}/boot && mount -t btrfs -o ${BTRFS_OPTS},subvol=@home ${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT}/home && mount -t btrfs -o ${BTRFS_OPTS},subvol=@snapshots ${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT}/.snapshots
+   umount ${ROOT_MOUNT_POINT} \
+&& mount \
+	-t btrfs \
+	-o ${BTRFS_OPTS},subvol=@ \
+	${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT} \
+&& mount \
+	-t btrfs \
+	-o ${BTRFS_OPTS},subvol=@home \
+	${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT}/home \
+&& mount \
+	-t btrfs \
+	-o ${BTRFS_OPTS},subvol=@snapshots \
+	${ENCRYPTED_PARTITION} ${ROOT_MOUNT_POINT}/.snapshots \
+&& mount \
+   ${EFI_PARTITION} ${ROOT_MOUNT_POINT}/boot
 if ($? -ne 0); then
   echo "ERROR: Could not mount some of the subvolumes on the primary file system!" >&2
   exit 1
@@ -134,7 +163,11 @@ mount
 
 # create nested (not backed up) subvolumes on the root file system
 echo "Creating nested subvolume inside the root file sytem..."
-mkdir -p ${ROOT_MOUNT_POINT}/var/cache/pacman && btrfs subvolume create ${ROOT_MOUNT_POINT}/var/cache/pacman/pkg && btrfs subvolume create ${ROOT_MOUNT_POINT}/var/abs && btrfs subvolume create ${ROOT_MOUNT_POINT}/var/tmp && btrfs subvolume create ${ROOT_MOUNT_POINT}/srv
+   mkdir -p ${ROOT_MOUNT_POINT}/var/cache/pacman \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/var/cache/pacman/pkg \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/var/abs \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/var/tmp \
+&& btrfs subvolume create ${ROOT_MOUNT_POINT}/srv
 if ($? -ne 0); then
   echo "ERROR: Could not create some of the nested subvolumes in the root file system!" >&2
   exit 1
@@ -179,7 +212,10 @@ chown u+w ${SUDOERS_FILE} && echo "
 " >> ${SUDOERS_FILE} && chown u-w ${SUDOERS_FILE}
 
 MKINITCPIO_CONF_FILE=${ROOT_MOUNT_POINT}/etc/mkinitcpio.conf
-sed -e 's/^BINARIES=.*$/BINARIES=(\/usr\/sbin\/btrfs)/' -e 's/^HOOKS=.*$/HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)/' ${MKINITCPIO_CONF_FILE} > ${MKINITCPIO_CONF_FILE}
+sed \
+	-e 's/^BINARIES=.*$/BINARIES=(\/usr\/sbin\/btrfs)/' \
+	-e 's/^HOOKS=.*$/HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
+	${MKINITCPIO_CONF_FILE} > ${MKINITCPIO_CONF_FILE}
 arch-chroot ${ROOT_MOUNT_POINT} mkinitcpio -p ${KERNEL_PACKAGE}
 
 # https://wiki.archlinux.org/index.php/Systemd-boot#Preparing_a_unified_kernel_image
@@ -200,8 +236,19 @@ options ${BOOT_OPTIONS}" > ${ROOT_MOUNT_POINT}/boot/loader/entries/arch-bootload
 
 echo "title Arch via EFISTUB
 efi /linux.efi" > /boot/loader/entries/arch-efistub.conf
-cat ${ROOT_MOUNT_POINT}/boot/${PLATFORM}-ucode.img ${ROOT_MOUNT_POINT}/boot/initramfs-${KERNEL_PACKAGE}.img > ${ROOT_MOUNT_POINT}/boot/intitramfs-unified.img
-objcopy --add-section .osrel=${ROOT_MOUNT_POINT}/etc/os-release --change-section-vma .osrel=0x20000 --add-section .cmdline=${ROOT_MOUNT_POINT}/boot/cmdline.txt --change-section-vma .cmdline=0x30000 --add-section .linux=${ROOT_MOUNT_POINT}/boot/vmlinuz-${KERNEL_PACKAGE} --change-section-vma .linux=0x40000 --add-section .initrd=${ROOT_MOUNT_POINT}/boot/initramfs-unified.img --change-section-vma .initrd=0x3000000 ${ROOT_MOUNT_POINT}/usr/lib/systemd/boot/efi/linuxx64.efi.stub ${ROOT_MOUNT_POINT}/boot/linux.efi
+cat \
+	${ROOT_MOUNT_POINT}/boot/${PLATFORM}-ucode.img \
+	${ROOT_MOUNT_POINT}/boot/initramfs-${KERNEL_PACKAGE}.img > ${ROOT_MOUNT_POINT}/boot/intitramfs-unified.img
+objcopy \
+	--add-section .osrel=${ROOT_MOUNT_POINT}/etc/os-release \
+	--change-section-vma .osrel=0x20000 \
+	--add-section .cmdline=${ROOT_MOUNT_POINT}/boot/cmdline.txt \
+	--change-section-vma .cmdline=0x30000 \
+	--add-section .linux=${ROOT_MOUNT_POINT}/boot/vmlinuz-${KERNEL_PACKAGE} \
+	--change-section-vma .linux=0x40000 \
+	--add-section .initrd=${ROOT_MOUNT_POINT}/boot/initramfs-unified.img \
+	--change-section-vma .initrd=0x3000000 \
+	${ROOT_MOUNT_POINT}/usr/lib/systemd/boot/efi/linuxx64.efi.stub ${ROOT_MOUNT_POINT}/boot/linux.efi
 
 echo "title KeyTool
 efi /BOOT/KeyTool.efi" > /boot/loader/entries/keytool.conf
