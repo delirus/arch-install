@@ -291,3 +291,24 @@ efibootmgr -c -d ${DISK_DEVICE} -p 1 --label ArchLinux -l "BOOT\linux-signed.efi
 
 # TODO parametrize script
 
+sudo pacman -Sy sway
+sudo pacman -Sy firefox
+sudo pacman -Sy pavucontrol
+sudo pacman -Sy pulseaudio
+sudo pacman -Sy htop
+sudo pacman -Sy pulseaudio-alsa pulseaudio-bluetooth
+sudo pacman -Sy alsa-utils
+sudo pacman -Sy lightdm
+sudo pacman -Sy libva-mesa-driver vulkan-radeon mesa-vdpau
+sudo pacman -Sy man
+sudo pacman -Sy wdisplays
+sudo pacman -Sy base-devel
+sudo pacman -Sy git
+sudo pacman -Sy bluez-utils
+sudo pacman -Sy blueman
+sudo pacman -Sy unzip
+sudo pacman -Sy fuse2
+sudo pacman -Sy prusa-slicer
+sudo pacman -Sy xorg-xwayland
+sudo pacman -Sy openscad
+sudo pacman -Sy brightnessctl
