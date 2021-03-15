@@ -214,6 +214,7 @@ chown u+w ${SUDOERS_FILE} && echo "
 MKINITCPIO_CONF_FILE=${ROOT_MOUNT_POINT}/etc/mkinitcpio.conf
 sed \
 	-e 's/^BINARIES=.*$/BINARIES=(\/usr\/sbin\/btrfs)/' \
+	-e 's/^MODULES=.*$/MODULES=(amdgpu)/' \
 	-e 's/^HOOKS=.*$/HOOKS=(base systemd autodetect keyboard sd-vconsole modconf block sd-encrypt filesystems fsck)/' \
 	${MKINITCPIO_CONF_FILE} > ${MKINITCPIO_CONF_FILE}
 arch-chroot ${ROOT_MOUNT_POINT} mkinitcpio -p ${KERNEL_PACKAGE}
@@ -312,3 +313,8 @@ sudo pacman -Sy prusa-slicer
 sudo pacman -Sy xorg-xwayland
 sudo pacman -Sy openscad
 sudo pacman -Sy brightnessctl
+sudo pacman -Sy gdm
+sudo pacman -Sy usbutils
+sudo pacman -Sy fwupd
+
+
